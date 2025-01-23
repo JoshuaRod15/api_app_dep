@@ -38,4 +38,4 @@ jobs:
 
     # 7. Sube la imagen a DockerHub
     - name: Push Docker image to DockerHub
-      run: docker push ${{ secrets.DOCKER_USERNAME }}/express_app_dep:latest
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/apirest_dep:latest
