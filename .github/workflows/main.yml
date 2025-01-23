@@ -27,7 +27,7 @@ jobs:
 
     # 5. Construye la imagen Docker
     - name: Build Docker image
-      run: docker build -t express_app_dep .
+      run: docker build -t apirest_dep .
 
     # 6. Inicia sesión en DockerHub
     - name: Log in to DockerHub
