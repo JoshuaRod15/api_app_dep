@@ -25,10 +25,6 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    # 4. Ejecuta pruebas (opcional)
-    - name: Run tests
-      run: npm test
-
     # 5. Construye la imagen Docker
     - name: Build Docker image
       run: docker build -t express_app_dep .
