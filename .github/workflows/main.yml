@@ -27,7 +27,7 @@ jobs:
 
     # 5. Construye la imagen Docker
     - name: Build Docker image
-      run: docker build -t apirest_dep .
+      run: docker build -t ${{ secrets.DOCKER_USERNAME }}/express_app_dep:latest .
 
     # 6. Inicia sesión en DockerHub
     - name: Log in to DockerHub
@@ -37,5 +37,6 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     # 7. Sube la imagen a DockerHub
-    - name: Push Docker image to DockerHub
-      run: docker push ${{ secrets.DOCKER_USERNAME }}/apirest_dep:latest
+    - name: Push Docker image
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/express_app_dep:latest
+
