@@ -118,21 +118,8 @@ export const createProductInStrapi = async (req: Request, res: Response): Promis
             data: response.data
         });
     } catch (error:any) {
-        /* console.error('Error al crear producto en Strapi:', error);
-        res.status(error.status).json({ error: `Error al crear el producto en Strapi ${error}`, }); */
-        if (error.response) {
-            // El servidor respondió con un código de estado fuera del rango 2xx
-            console.error("Error en la respuesta:", error.response.data);
-            res.status(error.status).json({ error: `Error al crear el producto en Strapi ${error}`, });
-          } else if (error.request) {
-            // La solicitud fue hecha pero no se recibió respuesta
-            console.error("No se recibió respuesta:", error.request);
-            res.status(error.status).json({ error: `Error al crear el producto en Strapi ${error}`, });
-          } else {
-            // Algo sucedió al configurar la solicitud
-            console.error("Error al configurar la solicitud:", error.message);
-            res.status(error.status).json({ error: `Error al crear el producto en Strapi ${error}`, });
-          }
+        console.error('Error al crear producto en Strapi:', error.error);
+        res.status(error.status).json({ error: `Error al crear el producto en Strapi ${error}`, });
     }
 }; 
 
