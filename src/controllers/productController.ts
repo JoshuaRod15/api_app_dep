@@ -70,8 +70,8 @@ export const getProductFromStrapi = async (req: Request, res: Response): Promise
 
 
 export const createProductInStrapi = async (req: Request, res: Response): Promise<void> => {
-    const {nombre, descripcion, tipo, precio, sku, cantidad, alerta, categoria, variantes, peso} = req.body.data
-    //const { name, description,type, price, barcode, stock, inventoryAlert, inventoryAlertCount, category, customFeatures} = req.body.data;
+    //const {nombre, descripcion, tipo, precio, sku, cantidad, alerta, categoria, variantes, peso} = req.body.data
+    const { name, description, type, price, sku, quantity, alert, category, variants, weight} = req.body.data;
     const {userId} = req.params
     const token = req.headers['authorization']; 
     
@@ -85,18 +85,18 @@ export const createProductInStrapi = async (req: Request, res: Response): Promis
         // Preparar los datos para enviar a Strapi
         const productData = {
             data: {
-                name:nombre,
-                description:descripcion,
-                price:precio,
+                name,
+                description,
+                price,
                 barcode:sku,
-                stock:cantidad,
+                stock:quantity,
                 inventoryAlert:true,
-                inventoryAlertCount:alerta,
+                inventoryAlertCount:alert,
                 user,
-                type:tipo,
-                weight:peso,
-                category: {connect: categoria},
-                customFeatures: variantes
+                type,
+                weight,
+                category: {connect: category},
+                customFeatures: variants
             }
         };
 
@@ -169,16 +169,17 @@ export const updateProductInStrapi = async (req: Request, res: Response): Promis
 
 export const buyProductsStrapi = async (req: Request, res: Response): Promise<void> => {
     const { products } = req.body;  // Obtenemos los productos y cantidades desde el cuerpo de la solicitud
+    const token = req.headers['authorization']; 
     let alerts: any[] = [];  // Array para almacenar las alertas
-
+    console.log(products);
     try {
         
         // Validar el stock para cada producto
         const stockChecks = await Promise.all(products.map(async (item: any) => {
-            const { productId, quantity } = item;
+            const { documentId, quantity } = item;
             
             // Llamar a la función para validar el stock
-            const isStock = await validateStockStrapi(productId, quantity);
+            const isStock = await validateStockStrapi(documentId, quantity, token);
             
             // Si no hay suficiente stock, lanzar un error
             if (!isStock.status) { 
@@ -190,14 +191,14 @@ export const buyProductsStrapi = async (req: Request, res: Response): Promise<vo
 
         // Reducir el stock de los productos en función de las cantidades compradas
         await Promise.all(products.map((item: any, index: any) => {
-            const { productId, quantity } = item;
+            const { documentId, quantity } = item;
             const currentStock = stockChecks[index];  // El stock validado previamente
-            return reduceStockStrapi(productId, quantity, currentStock);  // Reducir el stock
+            return reduceStockStrapi(documentId, quantity, currentStock, token);  // Reducir el stock
         }));
 
         // Enviar alertas si algún producto tiene stock bajo
         const alertMessages = await Promise.all(products.map(async (item: any) => {
-            return await alertStockStrapi(item.productId);  // Comprobar si se necesita una alerta
+            return await alertStockStrapi(item.documentId, token);  // Comprobar si se necesita una alerta
         }));
 
         // Filtrar las alertas no definidas
@@ -216,8 +217,30 @@ export const buyProductsStrapi = async (req: Request, res: Response): Promise<vo
     }
 };
 
+export const validateCartStock = async (req: Request, res: Response): Promise<void> => {
+    const { products } = req.body;
+    const token = req.headers['authorization']; 
+    try {
+        const stockChecks = await Promise.all(products.map(async (item: any) => {
+            const { documentId, quantity } = item;
+            const isStock = await validateStockStrapi(documentId, quantity, token);
 
-const reduceStockStrapi = async (productId: string, quantity: number, currentStock: number) => {
+            if (!isStock.status) {
+                throw new Error(`Stock insuficiente del producto ${isStock.product.name}`);
+            }
+
+            return isStock.product.stock;
+        }));
+
+        res.status(200).json({ message: 'Stock validado correctamente', stockChecks });
+    } catch (error: any) {
+        console.log(error.message);
+        res.status(400).json({ message: 'Error al validar el stock', error: error.message });
+    }
+};
+
+
+const reduceStockStrapi = async (productId: string, quantity: number, currentStock: number, token:string|undefined) => {
     const newStock = Number(currentStock) - Number(quantity);
     
     const updatedData = {
@@ -233,7 +256,7 @@ const reduceStockStrapi = async (productId: string, quantity: number, currentSto
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    // 'Authorization': `Bearer ${process.env.STRAPI_API_TOKEN}`, // Si es necesario un token de autenticación
+                    'Authorization': token, // Si es necesario un token de autenticación
                 },
             }
         );
@@ -243,7 +266,7 @@ const reduceStockStrapi = async (productId: string, quantity: number, currentSto
 };
 
 
-const validateStockStrapi = async (productId: string, quantity: number) => {
+const validateStockStrapi = async (productId: string, quantity: number, token:string|undefined) => {
     try { 
         
         // Realizar la solicitud GET a la API de Strapi para obtener el producto por ID
@@ -252,7 +275,7 @@ const validateStockStrapi = async (productId: string, quantity: number) => {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    // 'Authorization': `Bearer ${process.env.STRAPI_API_TOKEN}`, // Si se requiere un token de autenticación
+                    'Authorization': token, // Si se requiere un token de autenticación
                 }
             }
         );
@@ -272,14 +295,13 @@ const validateStockStrapi = async (productId: string, quantity: number) => {
 };
 
 
-const alertStockStrapi = async (productId: string) => {
+const alertStockStrapi = async (productId: string, token:string|undefined) => {
     try {
         // Realizar una solicitud GET a la API de Strapi para obtener el producto
         const response:any = await axios.get(`${STRAPI_URL}/products/${productId}`, {
             headers: {
                 'Content-Type': 'application/json',
-                // Agregar token de autenticación si es necesario
-                // 'Authorization': `Bearer ${process.env.STRAPI_API_TOKEN}`,
+                'Authorization': token,
             }
         });
 

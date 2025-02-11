@@ -8,15 +8,14 @@ const STRAPI_URL = process.env.STRAPI_URL;
 
 export const login = async (req: Request, res: Response): Promise<void> => {
     const { identifier, password } = req.body; 
-    console.log(identifier, password);
-    // Recibe el email o username y la contraseña del usuario
+    
     try {
         // Enviar la solicitud de autenticación a Strapi
         const response:any = await axios.post(`${STRAPI_URL}/auth/local`, {
             identifier,
             password,
         });
-        console.log(response.data);
+        //console.log(response.data);
         
         const { jwt } = response.data; // Obtiene el JWT (token)
         //const {id}
@@ -25,7 +24,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             message: 'Inicio de sesión exitoso',
             token: jwt,
         });
-    } catch (error) {
+    } catch (error:any) {
         console.error('Error al iniciar sesión:', error);
         res.status(400).json({
             message: 'Credenciales incorrectas',
