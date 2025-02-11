@@ -118,8 +118,11 @@ export const createProductInStrapi = async (req: Request, res: Response): Promis
             data: response.data
         });
     } catch (error:any) {
-        console.error('Error al crear producto en Strapi:', error.error);
-        res.status(error.status).json({ error: `Error al crear el producto en Strapi ${error}`, });
+        const errorMessage = error.response.data.error.details.errors
+        .map((err:any) => err.message) // Extrae solo el mensaje
+        .join(', ');
+        console.error('Error al crear producto en Strapi:', error.response.data.error.details.errors);
+        res.status(error.status).json({ error: `Error al crear el producto en Strapi ${errorMessage}` });
     }
 }; 
 
