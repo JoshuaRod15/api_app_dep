@@ -9,10 +9,10 @@ export const getAllProductsStrapi = async (req: Request, res: Response) => {
     
     const {userId} = req.params
     const token = req.headers['authorization']; 
-    console.log(`token prueba: ${token}`);
+    const {category} = req.query
     
     try {
-        // Realiza la solicitud GET al endpoint de productos en Strapi
+        if(!category){
         const response = await axios.get(`${STRAPI_URL}/products`, {
             headers: {
                 Authorization: token, // Si Strapi usa autenticación JWT
@@ -26,9 +26,25 @@ export const getAllProductsStrapi = async (req: Request, res: Response) => {
 
         // Retorna los productos obtenidos de Strapi
         res.status(200).json(response.data);
-    } catch (error) {
-        console.error('Error fetching products from Strapi:', error);
-        res.status(500).json({ message: 'Error fetching products', error });
+        }
+        const response = await axios.get(`${STRAPI_URL}/products`, {
+            headers: {
+                Authorization: token, // Si Strapi usa autenticación JWT
+                'Content-Type': 'application/json',
+            },
+            params:{
+                populate: [ 'category'],
+                filters: { user: userId, category: {id:category}}
+            }
+        });
+
+        // Retorna los productos obtenidos de Strapi
+        res.status(200).json(response.data);
+
+    } catch (error:any) {
+        const errorMessage = JSON.stringify(error.response.data.error)
+        console.error('Error fetching products from Strapi:', error.response.data.error);
+        res.status(500).json({ message: `Error fetching products ${errorMessage}`});
     }
 };
 
@@ -62,8 +78,8 @@ export const getProductFromStrapi = async (req: Request, res: Response): Promise
         }
 
         res.status(200).json(response.data.data);  // Enviar el producto encontrado
-    } catch (error) {
-        console.error('Error al obtener el producto de Strapi:', error);
+    } catch (error:any) {
+        console.error('Error al obtener el producto de Strapi:', error.response.data);
         res.status(500).json({ message: 'Error al obtener el producto de Strapi' });
     }
 };
@@ -174,7 +190,6 @@ export const buyProductsStrapi = async (req: Request, res: Response): Promise<vo
     const { products } = req.body;  // Obtenemos los productos y cantidades desde el cuerpo de la solicitud
     const token = req.headers['authorization']; 
     let alerts: any[] = [];  // Array para almacenar las alertas
-    console.log(products);
     try {
         
         // Validar el stock para cada producto
