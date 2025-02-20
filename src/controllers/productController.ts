@@ -6,45 +6,47 @@ dotenvConfig({path: '.env'})
 const STRAPI_URL = process.env.STRAPI_URL;
 
 export const getAllProductsStrapi = async (req: Request, res: Response) => {
-    
-    const {userId} = req.params
-    const token = req.headers['authorization']; 
-    const {category} = req.query
-    
+    const { userId } = req.params;
+    const token = req.headers['authorization'];
+    const { category } = req.query;
+
     try {
-        if(!category){
-        const response = await axios.get(`${STRAPI_URL}/products`, {
-            headers: {
-                Authorization: token, // Si Strapi usa autenticación JWT
-                'Content-Type': 'application/json',
-            },
-            params:{
-                populate: [ 'category'],
-                filters: { user: userId}
-            }
-        });
+        // Configura los parámetros de la solicitud
+        const params: any = {
+            populate: ['category'],
+            filters: { user: userId },
+        };
 
-        // Retorna los productos obtenidos de Strapi
-        res.status(200).json(response.data);
+        // Si se proporciona una categoría, agrega el filtro
+        if (category) {
+            params.filters.category = { id: category };
         }
+
+        // Realiza la solicitud a Strapi
         const response = await axios.get(`${STRAPI_URL}/products`, {
             headers: {
-                Authorization: token, // Si Strapi usa autenticación JWT
+                Authorization: token,
                 'Content-Type': 'application/json',
             },
-            params:{
-                populate: [ 'category'],
-                filters: { user: userId, category: {id:category}}
-            }
+            params,
         });
 
         // Retorna los productos obtenidos de Strapi
         res.status(200).json(response.data);
-
-    } catch (error:any) {
-        const errorMessage = JSON.stringify(error.response.data.error)
-        console.error('Error fetching products from Strapi:', error.response.data.error);
-        res.status(500).json({ message: `Error fetching products ${errorMessage}`});
+    } catch (error: any) {
+        // Manejo de errores
+        if (error.isAxiosError(error)) {
+            // Error de Axios (respuesta del servidor)
+            const errorMessage = error.response?.data?.error || error.message;
+            console.error('Error fetching products from Strapi:', errorMessage);
+            res.status(error.response?.status || 500).json({
+                message: `Error fetching products: ${errorMessage}`,
+            });
+        } else {
+            // Error genérico (red, tiempo de espera, etc.)
+            console.error('Unexpected error:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
     }
 };
 
